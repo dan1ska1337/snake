@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Боби Боливия</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:none}
+html,body{margin:0;height:100%;background:#06142e;color:#fff;font:16px system-ui,sans-serif;overflow:hidden;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.top{position:fixed;left:0;right:0;top:0;padding:calc(var(--tg-safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px) + 10px) 14px 0;display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none}
+#lv{pointer-events:auto;background:#0009;border:1px solid #ffffff30;border-radius:20px;padding:7px 16px;font-weight:800;backdrop-filter:blur(8px)}
+#bal{font:900 46px system-ui;text-shadow:0 3px 16px #000b}#pt{font-weight:700;opacity:.92;text-shadow:0 2px 8px #000a}
+.bar{width:100%;max-width:300px;height:8px;border-radius:5px;background:#0007;overflow:hidden}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd43b,#ff9100)}
+.bot{position:fixed;left:0;right:0;bottom:0;padding:0 12px calc(var(--tg-safe-area-inset-bottom,0px) + env(safe-area-inset-bottom,0px) + 8px)}
+#en{display:flex;justify-content:space-between;font-weight:800;margin:0 6px 6px;text-shadow:0 2px 6px #000a}#eb i{background:linear-gradient(90deg,#4dd0e1,#448aff)}
+.tabs{display:flex;gap:6px;background:#050d20cc;border:1px solid #ffffff22;border-radius:22px;padding:6px;backdrop-filter:blur(10px)}
+.tabs button{flex:1;border:0;background:none;color:#aab8e0;font:700 11px system-ui;padding:7px 0;border-radius:16px;display:flex;flex-direction:column;align-items:center;gap:2px}.tabs span{font-size:22px}.tabs .on{background:#ffffff22;color:#fff}
+.pn{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;gap:10px;padding:calc(var(--tg-safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px) + 18px) 16px calc(var(--tg-safe-area-inset-bottom,0px) + 110px);background:#06142eee;backdrop-filter:blur(8px);overflow-y:auto}
+.pn,.pn *{touch-action:pan-y}.pn.on{display:flex;animation:inn .3s both}
+@keyframes inn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+h2{margin:0;font-size:28px}.it{display:flex;align-items:center;gap:12px;width:100%;max-width:380px;background:#ffffff14;border:1px solid #ffffff22;border-radius:18px;padding:12px;text-align:left}
+.it .ic{font-size:30px}.it div{flex:1}.it b{display:block}.it small{opacity:.75}.it.sel{outline:2px solid #ffd43b}
+.b{border:0;border-radius:14px;padding:11px 14px;background:linear-gradient(135deg,#ffd43b,#ff9100);color:#2a1a00;font:800 14px system-ui;white-space:nowrap}.b:active{transform:scale(.95)}.b.g{background:#ffffff26;color:#fff}.b[disabled]{opacity:.45}
+#toast{position:fixed;bottom:calc(var(--tg-safe-area-inset-bottom,0px) + 170px);left:50%;transform:translate(-50%,400%);background:#ffd43b;color:#222;font-weight:800;padding:10px 18px;border-radius:14px;z-index:9;transition:.3s;pointer-events:none;max-width:90%;text-align:center}#toast.on{transform:translate(-50%,0)}
+#err{position:fixed;left:8px;right:8px;top:70px;background:#b71c1cdd;padding:8px;border-radius:8px;font:12px monospace;display:none;z-index:99}
+#splash{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(circle at 50% 30%,#7b4fa3,#06142e 70%);transition:opacity .5s}#splash.off{opacity:0;pointer-events:none}
+#splash i{font-style:normal;font-size:88px;animation:bob 1.1s ease-in-out infinite alternate}#splash b{font-size:26px;letter-spacing:3px}#splash small{opacity:.8}
+#splash em{width:150px;height:6px;border-radius:3px;background:#ffffff26;overflow:hidden;position:relative}#splash em:after{content:'';position:absolute;top:0;bottom:0;left:0;width:45%;border-radius:3px;background:#fff;animation:ld .9s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-14px) rotate(-7deg)}}@keyframes ld{to{transform:translateX(120%)}}@keyframes fall{to{transform:translateY(115vh) rotate(540deg)}}
+</style></head><body>
+<div id="splash"><i>🏴‍☠️</i><b>БОБИ БОЛИВИЯ</b><small>aka Боб</small><em></em></div>
+<canvas id="cv"></canvas>
+<div class="top"><div id="lv"></div><div id="bal">0</div><div id="pt"></div></div>
+<div class="bot"><div id="en"><span id="et"></span><span id="ev"></span></div><div class="bar" id="eb" style="max-width:none;margin:0 6px 8px"><i></i></div>
+<div class="tabs" id="tabs"></div></div>
+<div id="pn" class="pn"></div><div id="toast"></div><div id="err"></div>
+<script>
+const $=id=>document.getElementById(id),tg=window.Telegram&&Telegram.WebApp,KEY='bobby_v1',DEV='dan1ska_qwe';
+window.onerror=(m,s,l)=>{const e=$('err');e.style.display='block';e.textContent='Ошибка: '+m+' (стр. '+l+')'};
+const LV=[['Юнга','#cd7f32',0],['Матрос','#c0c8d0',1000],['Боцман','#ffd43b',10000],['Штурман','#4dd0e1',50000],['Капитан','#b388ff',250000],['Адмирал','#ff5252',1000000],['Легенда Боливии','#ffffff',5000000]];
+let S={c:0,tot:0,taps:0,mt:0,eg:0,rc:0,bot:0,e:1000,seen:Date.now(),skin:0,own:[0],snd:true,vib:true,streak:0,day:'',full:3,fday:'',tasks:[],time:0};
+const COST={mt:l=>Math.round(250*2**l),eg:l=>Math.round(250*1.9**l),rc:l=>Math.round(600*2.2**l),bot:l=>Math.round(4000*2**l)},MAXL={mt:15,eg:15,rc:10,bot:10};
+const P=()=>1+S.mt,ME=()=>1000+500*S.eg,RG=()=>1+S.rc,BR=()=>S.bot*2,fmt=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e4?(n/1e3).toFixed(1)+'K':Math.floor(n).toLocaleString('ru');
+const lvi=()=>{let i=0;LV.forEach((l,k)=>{if(S.tot>=l[2])i=k});return i},day=()=>new Date().toISOString().slice(0,10);
+const SKINS=[['Классика','🏴‍☠️',0],['Бандана','🔴',1500],['Треуголка','🎩',6000],['Капитан','⚓',25000],['Золотой Боби','👑',100000]];
+const hap=t=>{if(!S.vib)return;try{t==='error'?tg.HapticFeedback.notificationOccurred('error'):tg.HapticFeedback.impactOccurred(t)}catch(e){}};
+let AC;const beep=(f,d=.07,t='triangle',v=.05)=>{if(!S.snd)return;try{AC=AC||new(window.AudioContext||webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(1e-4,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}};
+const say=m=>{try{tg.showAlert(m)}catch(e){alert(m)}};let tq=[];
+function toast(t){tq.push(t);if(tq.length===1)nx()}function nx(){const e=$('toast');e.textContent=tq[0];e.classList.add('on');setTimeout(()=>{e.classList.remove('on');tq.shift();if(tq.length)setTimeout(nx,350)},2300)}
+function confetti(){for(let i=0;i<34;i++){const s=document.createElement('i');s.textContent=['🪙','⭐','🏴‍☠️','✨','💰'][i%5];s.style.cssText=`position:fixed;z-index:70;top:-30px;left:${Math.random()*100}%;font-size:${16+Math.random()*16}px;font-style:normal;pointer-events:none;animation:fall ${2+Math.random()*2.2}s linear ${Math.random()*.8}s forwards`;document.body.appendChild(s);setTimeout(()=>s.remove(),5500)}}
+function load(cb){let done=false;const fin=v=>{if(done)return;done=true;try{Object.assign(S,JSON.parse(v||localStorage.getItem(KEY)||'{}'))}catch(e){}cb()};
+ try{if(tg&&tg.isVersionAtLeast('6.9')){tg.CloudStorage.getItem(KEY,(e,v)=>fin(v));setTimeout(()=>fin(),1500);return}}catch(e){}fin()}
+let dirty=false;function save(){S.seen=Date.now();const j=JSON.stringify(S);try{localStorage.setItem(KEY,j)}catch(e){}try{if(tg&&tg.isVersionAtLeast('6.9'))tg.CloudStorage.setItem(KEY,j)}catch(e){}dirty=false}
+setInterval(()=>{if(dirty)save()},4000);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+
+/* ---- рисование ---- */
+const cv=$('cv'),ctx=cv.getContext('2d');let cw=390,ch=780,dpr=1,cx=195,cy=330,R=130,sq=0,tX=0,tY=0,mouth=0,fts=[],parts=[],shk=0;
+const ci=(x,y,r,f)=>{ctx.fillStyle=f;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()},el=(x,y,a,b,f)=>{ctx.fillStyle=f;ctx.beginPath();ctx.ellipse(x,y,a,b,0,0,7);ctx.fill()};
+function resize(){cw=innerWidth;ch=innerHeight;dpr=devicePixelRatio||1;cv.width=cw*dpr;cv.height=ch*dpr;cx=cw/2;cy=ch*.43;R=Math.min(cw*.37,ch*.2)}
+function bg(now){const hz=ch*.66,g=ctx.createLinearGradient(0,0,0,hz);g.addColorStop(0,'#0b1540');g.addColorStop(.6,'#6a3f9c');g.addColorStop(1,'#ff9a62');ctx.fillStyle=g;ctx.fillRect(0,0,cw,hz);
+ for(let i=0;i<40;i++){ctx.globalAlpha=.3+.7*Math.abs(Math.sin(now/800+i));ctx.fillStyle='#fff';ctx.fillRect((i*83)%cw,(i*47)%(hz*.6),1.6,1.6)}ctx.globalAlpha=1;
+ const sg=ctx.createRadialGradient(cw*.75,hz,0,cw*.75,hz,cw*.45);sg.addColorStop(0,'#ffe0a0');sg.addColorStop(.25,'#ff9a6288');sg.addColorStop(1,'#0000');ctx.fillStyle=sg;ctx.fillRect(0,hz-cw*.45,cw,cw*.5);
+ const sx=((now/45)%(cw+240))-120;ctx.fillStyle='#0a0f24';ctx.beginPath();ctx.moveTo(sx-34,hz-6);ctx.lineTo(sx+34,hz-6);ctx.lineTo(sx+24,hz+6);ctx.lineTo(sx-26,hz+6);ctx.fill();ctx.fillRect(sx-1.5,hz-44,3,40);ctx.beginPath();ctx.moveTo(sx+3,hz-42);ctx.lineTo(sx+28,hz-12);ctx.lineTo(sx+3,hz-12);ctx.moveTo(sx-3,hz-36);ctx.lineTo(sx-24,hz-12);ctx.lineTo(sx-3,hz-12);ctx.fill();
+ const sea=ctx.createLinearGradient(0,hz,0,ch);sea.addColorStop(0,'#1a6aa0');sea.addColorStop(1,'#04122a');ctx.fillStyle=sea;ctx.fillRect(0,hz,cw,ch-hz);
+ for(let k=0;k<4;k++){ctx.fillStyle=`rgba(${20+k*8},${90-k*10},${150-k*15},.35)`;ctx.beginPath();ctx.moveTo(0,ch);for(let x=0;x<=cw+10;x+=10)ctx.lineTo(x,hz+14+k*34+Math.sin(x/(50+k*14)+now/(700-k*90)+k)*(5+k*2));ctx.lineTo(cw,ch);ctx.fill()}}
+function bob(now){const sk=S.skin,gold=sk===4,K=LV[lvi()][1],F1=gold?'#ffe08a':'#9ca7ba',F2=gold?'#d9a02a':'#6b768a',TN=gold?'#c8871c':'#b9753a',bl=now%3400<130;
+ ctx.save();ctx.translate(cx,cy+Math.sin(now/700)*2);ctx.scale(R/100,R/100);ctx.scale(1+.05*sq,1-.07*sq);ctx.rotate(tX*.08*sq+Math.sin(now/1300)*.012);ctx.translate(tX*7*sq,tY*4*sq);
+ ctx.shadowColor=K;ctx.shadowBlur=36;const rg=ctx.createLinearGradient(-100,-100,100,100);rg.addColorStop(0,'#fff2a8');rg.addColorStop(.5,'#f2b925');rg.addColorStop(1,'#9a6208');ci(0,0,105,rg);ctx.shadowBlur=0;
+ ctx.strokeStyle='#7a4b00';ctx.lineWidth=2;for(let i=0;i<56;i++){const a=i/56*6.283;ctx.beginPath();ctx.moveTo(Math.cos(a)*97,Math.sin(a)*97);ctx.lineTo(Math.cos(a)*103,Math.sin(a)*103);ctx.stroke()}
+ const dg=ctx.createRadialGradient(0,-30,10,0,0,92);dg.addColorStop(0,'#3aa0e0');dg.addColorStop(1,'#0b3c73');ci(0,0,91,dg);
+ ctx.save();ctx.beginPath();ctx.arc(0,0,91,0,7);ctx.clip();ctx.fillStyle='#ffffff16';for(let i=0;i<12;i++){const a=i/12*6.283+now/4000;ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,130,a,a+.26);ctx.fill()}
+ el(0,98,66,46,F2);el(0,94,26,28,TN);
+ ctx.strokeStyle='#5a2d17';ctx.lineWidth=18;ctx.beginPath();ctx.ellipse(0,60,56,17,0,0,3.1416);ctx.stroke();ctx.strokeStyle='#e6c28a';ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();ctx.ellipse(0,60,56,13,0,.05,3.09);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#d5dde3';ctx.strokeStyle='#8a969c';ctx.beginPath();ctx.moveTo(-11,70);ctx.lineTo(11,70);ctx.lineTo(0,94);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.translate(0,-4);ctx.scale(.8,.8);
+ for(const s of[-1,1]){ctx.fillStyle=F2;ctx.beginPath();ctx.moveTo(s*54,-36);ctx.lineTo(s*72,-100);ctx.lineTo(s*12,-62);ctx.closePath();ctx.fill();ctx.fillStyle=TN;ctx.beginPath();ctx.moveTo(s*50,-44);ctx.lineTo(s*64,-88);ctx.lineTo(s*26,-62);ctx.closePath();ctx.fill()}
+ const hg=ctx.createRadialGradient(-10,-30,8,0,0,76);hg.addColorStop(0,F1);hg.addColorStop(1,F2);el(0,0,73,66,hg);
+ el(-48,32,22,26,TN);el(48,32,22,26,TN);el(0,36,36,28,gold?'#f4cc5a':'#8a95a8');el(-31,-35,10,6,TN);el(31,-35,10,6,TN);
+ const lk=Math.max(-1,Math.min(1,tX));
+ if(bl){ctx.strokeStyle='#0a0a10';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(14,-8);ctx.lineTo(46,-8);ctx.stroke()}else{el(30,-8,18,21,'#0a0a10');ci(24+lk*2,-16,5.5,'#fff');ci(37+lk*2,0,2.6,'#ffffffaa')}
+ el(-30,-8,25,27,'#17171d');ctx.strokeStyle='#33333d';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(-30,-8,25,27,0,0,7);ctx.stroke();ctx.fillStyle='#ffffffcc';ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('☠',-30,-1);
+ ctx.strokeStyle='#17171d';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-52,-24);ctx.quadraticCurveTo(0,-72,68,-36);ctx.stroke();ctx.beginPath();ctx.moveTo(-54,-2);ctx.lineTo(-68,12);ctx.stroke();
+ el(0,41,16,12,'#09090d');el(-5,37,5,3,'#ffffff90');
+ ctx.strokeStyle='#241616';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(0,52);ctx.lineTo(0,58);ctx.quadraticCurveTo(-9,66,-19,58);ctx.moveTo(0,58);ctx.quadraticCurveTo(9,66,19,58);ctx.stroke();
+ if(mouth>0){el(0,66,13,11,'#5a1020');el(0,70,8,5,'#ff7a9a')}
+ ctx.strokeStyle='#ffffffaa';ctx.lineWidth=1;for(const s of[-1,1])for(const d of[-4,0,4]){ctx.beginPath();ctx.moveTo(s*24,48+d);ctx.lineTo(s*60,46+d*2.4);ctx.stroke()}
+ ctx.restore();
+ ctx.translate(0,-4);ctx.scale(.8,.8);const acc=(f,s)=>{ctx.fillStyle=f;ctx.strokeStyle=s;ctx.lineWidth=3};
+ if(sk===1){acc('#d32f2f','#8e1b1b');ctx.beginPath();ctx.moveTo(-72,-22);ctx.quadraticCurveTo(0,-98,72,-22);ctx.quadraticCurveTo(0,-40,-72,-22);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';for(let i=0;i<6;i++)ci(-48+i*19,-48-Math.sin(i/5*3.14)*14,3,'#fff');acc('#d32f2f','#8e1b1b');ctx.beginPath();ctx.moveTo(70,-30);ctx.lineTo(98,-40);ctx.lineTo(90,-14);ctx.lineTo(100,-8);ctx.lineTo(68,-18);ctx.fill();ctx.stroke()}
+ if(sk>=2&&sk<=3){const cap=sk===3;acc(cap?'#1a2a6a':'#16161c','#f2b925');ctx.beginPath();ctx.moveTo(-104,-46);ctx.quadraticCurveTo(-40,-130,0,-122);ctx.quadraticCurveTo(40,-130,104,-46);ctx.quadraticCurveTo(0,-26,-104,-46);ctx.fill();ctx.stroke();
+  if(cap){ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(40,-112);ctx.quadraticCurveTo(110,-150,100,-80);ctx.quadraticCurveTo(80,-110,40,-100);ctx.fill();ctx.fillStyle='#f2b925';ctx.font='bold 26px system-ui';ctx.fillText('⚓',0,-72)}else{ci(0,-80,13,'#f4f4f4');ci(-5,-82,3,'#16161c');ci(5,-82,3,'#16161c');ctx.fillStyle='#16161c';ctx.fillRect(-4,-72,8,6)}}
+ if(sk===4){acc('#ffd43b','#8a5a00');ctx.beginPath();ctx.moveTo(-40,-60);ctx.lineTo(-48,-104);ctx.lineTo(-20,-82);ctx.lineTo(0,-112);ctx.lineTo(20,-82);ctx.lineTo(48,-104);ctx.lineTo(40,-60);ctx.closePath();ctx.fill();ctx.stroke();ci(0,-74,5,'#e53935')}
+ ctx.restore()}
+function draw(now,dt){ctx.setTransform(dpr,0,0,dpr,0,0);if(shk>0){shk-=dt;ctx.translate((Math.random()-.5)*10*shk,0)}bg(now);bob(now);
+ const rw=R*1.5;ctx.fillStyle='#3a1a08';ctx.strokeStyle='#f2b925';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect?ctx.roundRect(cx-rw/2,cy+R*1.1,rw,34,12):ctx.rect(cx-rw/2,cy+R*1.1,rw,34);ctx.fill();ctx.stroke();ctx.fillStyle='#ffe9a8';ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.fillText('Боби Боливия',cx,cy+R*1.1+22);
+ for(const p of parts){ctx.globalAlpha=Math.max(0,p.l);ci(p.x,p.y,p.r,p.c);p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=500*dt;p.l-=dt*1.6}ctx.globalAlpha=1;parts=parts.filter(p=>p.l>0);
+ ctx.font='900 28px system-ui';ctx.textAlign='center';for(const f of fts){ctx.globalAlpha=Math.max(0,f.l);ctx.lineWidth=5;ctx.strokeStyle='#000a';ctx.strokeText(f.t,f.x,f.y);ctx.fillStyle=f.c;ctx.fillText(f.t,f.x,f.y);f.y-=70*dt;f.l-=dt*1.1}ctx.globalAlpha=1;fts=fts.filter(f=>f.l>0)}
+
+/* ---- логика ---- */
+let li=0,lastHud='',tab='play';
+function tapAt(x,y){const p=P();if(S.e<p){shk=.3;hap('error');beep(140,.12,'sawtooth');if(!fts.length)fts.push({x:cx,y:cy-R,t:'⚡ нет энергии',l:1,c:'#4dd0e1'});return}
+ S.e-=p;S.c+=p;S.tot+=p;S.taps++;dirty=true;sq=1;tX=(x-cx)/R;tY=(y-cy)/R;mouth=.3;fts.push({x:x+(Math.random()-.5)*30,y:y-20,t:'+'+p,l:1,c:'#ffd43b'});
+ for(let i=0;i<6;i++){const a=Math.random()*6.283;parts.push({x,y,vx:Math.cos(a)*170,vy:Math.sin(a)*170-120,l:1,r:2+Math.random()*3,c:Math.random()<.5?'#ffd43b':'#fff2a8'})}
+ beep(560+Math.random()*260,.06);hap('light');chkLv()}
+function chkLv(){const n=lvi();if(n>li){li=n;toast('🏴‍☠️ Новое звание: '+LV[n][0]+'!');confetti();hap('error');beep(880,.3,'sine')}}
+cv.addEventListener('pointerdown',e=>{e.preventDefault();if(tab!=='play')return;if(Math.hypot(e.clientX-cx,e.clientY-cy)<R*1.15)tapAt(e.clientX,e.clientY)});
+function hud(){const i=lvi(),n=LV[i+1],t=`${LV[i][0]} ›`,pr=n?(S.tot-LV[i][2])/(n[2]-LV[i][2]):1,s=Math.floor(S.c)+'|'+P()+'|'+Math.floor(S.e)+'|'+t+'|'+BR();if(s===lastHud)return;lastHud=s;
+ $('bal').textContent='🪙 '+Math.floor(S.c).toLocaleString('ru');$('lv').innerHTML=`🏴‍☠️ ${t}<div class="bar" style="margin-top:5px;max-width:none;height:5px"><i style="width:${Math.min(100,pr*100)}%"></i></div>`;
+ $('pt').textContent=`+${P()} за тап`+(S.bot?`  ·  🤖 ${BR()}/с`:'');$('et').textContent=`⚡ ${Math.floor(S.e)} / ${ME()}`;$('ev').textContent=`+${RG()}/с`;$('eb').firstChild.style.width=Math.min(100,S.e/ME()*100)+'%'}
+function buy(k){const l=S[k];if(l>=MAXL[k])return say('Максимальный уровень!');const c=COST[k](l);if(S.c<c){beep(140,.15,'sawtooth');return say('Не хватает монет: нужно '+fmt(c)+' 🪙')}S.c-=c;S[k]++;save();beep(900,.15,'sine');hap('medium');panel()}
+function fullE(){if(S.fday!==day()){S.fday=day();S.full=3}if(S.full<=0)return say('Сегодня бесплатные заряды закончились');S.full--;S.e=ME();save();beep(700,.2,'sine');toast('⚡ Энергия полностью восстановлена');panel()}
+function skin(i){if(!S.own.includes(i)){if(S.c<SKINS[i][2]){beep(140,.15,'sawtooth');return say('Не хватает монет: нужно '+fmt(SKINS[i][2])+' 🪙')}S.c-=SKINS[i][2];S.own.push(i)}S.skin=i;save();beep(880,.15,'sine');panel()}
+const TASKS=[['snake','🐍','Сыграть в Змейку',5000,()=>location.href='index.html?v=7'],['doodle','🐱','Сыграть в Doodle Jump',5000,()=>location.href='doodle.html?v=5'],['dev','✉️','Написать разработчику',2000,()=>{const u=`https://t.me/${DEV}?text=${encodeURIComponent('Здравствуйте!')}`;tg&&tg.openTelegramLink?tg.openTelegramLink(u):window.open(u)}],['taps','👆','Сделать 10 000 тапов',20000,null]];
+const DR=[500,1000,2000,4000,8000,16000,32000];
+function claimDaily(){if(S.day===day())return;const y=new Date(Date.now()-864e5).toISOString().slice(0,10);S.streak=S.day===y?Math.min(S.streak+1,7):1;S.day=day();const r=DR[S.streak-1];S.c+=r;S.tot+=r;save();confetti();toast('🎁 День '+S.streak+': +'+fmt(r)+' 🪙');chkLv();panel()}
+function task(i){const t=TASKS[i];if(S.tasks.includes(t[0]))return;if(t[0]==='taps'&&S.taps<10000)return say('Сделано тапов: '+S.taps+' из 10 000');S.tasks.push(t[0]);S.c+=t[3];S.tot+=t[3];save();toast('✅ +'+fmt(t[3])+' 🪙');chkLv();panel();if(t[4])setTimeout(t[4],500)}
+const row=(ic,n,d,btn,sel)=>`<div class="it${sel?' sel':''}"><span class="ic">${ic}</span><div><b>${n}</b><small>${d}</small></div>${btn}</div>`;
+function panel(){const p=$('pn');p.classList.toggle('on',tab!=='play');document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===tab));let h='';
+ if(tab==='boost'){h='<h2>🚀 Бусты</h2>';const U=[['mt','👆','Мультитап',`+1 за тап · сейчас +${P()}`],['eg','🔋','Запас энергии',`+500 · сейчас ${ME()}`],['rc','⚡','Скорость восстановления',`+1/с · сейчас ${RG()}/с`],['bot','🤖','Бот Боби (пассивный доход)',`+2 монеты/с · сейчас ${BR()}/с · до 3 ч офлайн`]];
+  h+=U.map(([k,ic,n,d])=>row(ic,n,d+` · ур. ${S[k]}`,S[k]>=MAXL[k]?'<button class="b g" disabled>МАКС</button>':`<button class="b" onclick="buy('${k}')">🪙 ${fmt(COST[k](S[k]))}</button>`)).join('');
+  if(S.fday!==day()){S.fday=day();S.full=3}h+=row('🔥','Полная энергия',`осталось сегодня: ${S.full}/3`,`<button class="b" onclick="fullE()">Заряд</button>`)}
+ if(tab==='skins'){h='<h2>🎩 Образы Боби</h2><p style="margin:0;opacity:.8">🪙 '+fmt(S.c)+'</p>'+SKINS.map((s,i)=>row(s[1],s[0],S.skin===i?'Выбран ✅':S.own.includes(i)?'Нажми, чтобы выбрать':'🪙 '+fmt(s[2]),`<button class="b${S.own.includes(i)?' g':''}" onclick="skin(${i})">${S.skin===i?'Надет':S.own.includes(i)?'Надеть':'Купить'}</button>`,S.skin===i)).join('')}
+ if(tab==='tasks'){const av=S.day!==day();h='<h2>📋 Задания</h2>'+row('🎁','Ежедневная награда',av?`день ${Math.min((S.day===new Date(Date.now()-864e5).toISOString().slice(0,10)?S.streak:0)+1,7)}: +${fmt(DR[Math.min((S.day===new Date(Date.now()-864e5).toISOString().slice(0,10)?S.streak:0),6)])} 🪙`:'Уже получена, приходи завтра',av?'<button class="b" onclick="claimDaily()">Забрать</button>':'<button class="b g" disabled>✓</button>')+TASKS.map((t,i)=>row(t[1],t[2],'+'+fmt(t[3])+' 🪙'+(t[0]==='taps'?` · ${Math.min(S.taps,10000)}/10 000`:''),S.tasks.includes(t[0])?'<button class="b g" disabled>✓</button>':`<button class="b" onclick="task(${i})">${t[4]?'Перейти':'Забрать'}</button>`)).join('')}
+ if(tab==='stats'){h='<h2>🏴‍☠️ Боб aka Боби Боливия</h2>'+LV.map((l,i)=>row(i<=lvi()?'✅':'🔒',l[0],'от '+fmt(l[2])+' 🪙','',i===lvi())).join('')+`<div class="it"><div>👆 Тапов: <b style="display:inline">${S.taps}</b><br>💰 Всего заработано: <b style="display:inline">${fmt(S.tot)}</b><br>🎩 Образов: <b style="display:inline">${S.own.length}/${SKINS.length}</b><br>⏱ В игре: <b style="display:inline">${Math.floor(S.time/60)} мин</b></div></div><div class="it"><div>Звук</div><button class="b g" onclick="S.snd=!S.snd;save();panel()">${S.snd?'🔊 вкл':'🔇 выкл'}</button><button class="b g" onclick="S.vib=!S.vib;save();panel()">${S.vib?'📳 вкл':'📴 выкл'}</button></div><div class="it"><div>Другие игры</div><button class="b" onclick="location.href='games.html?v=1'">🎮 Открыть</button></div>`}
+ p.innerHTML=h}
+$('tabs').innerHTML=[['play','🏴‍☠️','Игра'],['boost','🚀','Бусты'],['skins','🎩','Образы'],['tasks','📋','Задания']].map(t=>`<button data-k="${t[0]}"><span>${t[1]}</span>${t[2]}</button>`).join('');
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{tab=b.dataset.k;panel()});$('lv').onclick=()=>{tab=tab==='stats'?'play':'stats';panel()};
+
+let last=0,acc=0;function loop(now){const dt=Math.min(.05,(now-last)/1000||0);last=now;sq=Math.max(0,sq-dt*5);mouth=Math.max(0,mouth-dt);
+ const m=ME();S.e=Math.min(m,S.e+RG()*dt);if(S.bot){const g=BR()*dt;S.c+=g;S.tot+=g;acc+=dt;if(acc>1){acc=0;chkLv();dirty=true}}S.time+=dt/1;hud();draw(now,dt);requestAnimationFrame(loop)}
+addEventListener('resize',()=>setTimeout(resize,50));
+if(tg){tg.ready();tg.expand();try{tg.disableVerticalSwipes()}catch(e){}try{if(/android|ios/.test(tg.platform)&&tg.isVersionAtLeast('8.0'))tg.requestFullscreen()}catch(e){}try{tg.setHeaderColor('#06142e');tg.setBackgroundColor('#06142e')}catch(e){}
+ ['viewportChanged','safeAreaChanged','contentSafeAreaChanged','fullscreenChanged'].forEach(ev=>{try{tg.onEvent(ev,()=>setTimeout(resize,80))}catch(e){}})}
+resize();panel();requestAnimationFrame(loop);setTimeout(()=>$('splash').classList.add('off'),4000);
+load(()=>{const dt=Math.max(0,(Date.now()-S.seen)/1000);S.e=Math.min(ME(),S.e+RG()*dt);const off=Math.min(dt,10800)*BR();if(off>5){S.c+=off;S.tot+=off;setTimeout(()=>toast('🤖 Пока тебя не было, Боби заработал '+fmt(off)+' 🪙'),1400)}li=lvi();S.seen=Date.now();
+ if(S.day!==day())setTimeout(()=>toast('🎁 Доступна ежедневная награда!'),off>5?4200:1400);if(new URLSearchParams(location.search).get('go')==='stats'){tab='stats';panel()}
+ setTimeout(()=>$('splash').classList.add('off'),Math.max(150,1100-performance.now()))});
+</script></body></html>
